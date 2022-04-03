@@ -26,6 +26,12 @@
             android:layout_height="wrap_content"
             android:textSize="18sp"
             android:text="Available Device"/>
+        <ProgressBar
+            android:id="@+id/progress_scaning"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_gravity="center"
+            android:visibility="gone" />
     </LinearLayout>
 
     <LinearLayout
@@ -39,7 +45,6 @@
             android:layout_width="0dp"
             android:layout_height="match_parent">
         </ListView>
-
         <ListView
             android:id="@+id/available_list"
             android:layout_weight="1"
