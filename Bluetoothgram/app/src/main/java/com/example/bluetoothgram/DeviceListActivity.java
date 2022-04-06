@@ -26,12 +26,13 @@ import android.widget.Toast;
 import java.util.Set;
 
 public class DeviceListActivity extends AppCompatActivity {
+    public static String EXTRA_DEVICE_ADDRESS="device_address";
+    private BluetoothAdapter bluetoothAdapter;                  // Bluetooth Adapter view for switching Bluetooth
     private ListView PairedList, AvailableList;                 // instance of two listview
     private ProgressBar Scanning;
 
     private ArrayAdapter<String> PairedListAdapter, AvailableListAdapter;
     private Context context;                                    // create context for toast
-    private BluetoothAdapter bluetoothAdapter;                  // Bluetooth Adapter view for switching Bluetooth
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,6 +48,7 @@ public class DeviceListActivity extends AppCompatActivity {
         init();
     }
 
+
     @SuppressLint("MissingPermission")
     private void init() {
         // initialize the listview and adapter
@@ -60,6 +62,9 @@ public class DeviceListActivity extends AppCompatActivity {
         // set adapter in the list
         PairedList.setAdapter(PairedListAdapter);
         AvailableList.setAdapter(AvailableListAdapter);
+
+        PairedList.setOnItemClickListener(DeviceClickListener);
+        AvailableList.setOnItemClickListener(DeviceClickListener);
 
         // initialize the BluetoothAdapter, and return all paired devices
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
@@ -80,8 +85,52 @@ public class DeviceListActivity extends AppCompatActivity {
         registerReceiver(DeviceDetecter, intentFilter1);
     }
 
-    //
-    private AdapterView.OnItemClickListener mDeviceClickListen=new AdapterView.OnItemClickListener() {
+
+    @Override
+    // Create the Option Menu
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_device_list, menu);
+        return super.onCreateOptionsMenu(menu);
+    }
+
+
+    @Override
+    // It will be called when option menu selected
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // When user select "Scan Device" button
+        switch (item.getItemId()) {
+            case R.id.menu_scan_devices:
+                scanNewDevices();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
+
+    @SuppressLint("MissingPermission")
+    private void scanNewDevices() {
+        if (!bluetoothAdapter.isEnabled()) {
+            Toast.makeText(context, "Please open Bluetooth before scan", Toast.LENGTH_SHORT).show();
+        } else {
+            // make it visible
+            Scanning.setVisibility(View.VISIBLE);
+
+            //remove all current available device in the list to update the list
+            AvailableListAdapter.clear();
+            Toast.makeText(context, "Scanning", Toast.LENGTH_SHORT).show();
+
+            // if the user click scan button again, the discover function should be cancel first to avoid the loop
+            if (bluetoothAdapter.isDiscovering()) {
+                bluetoothAdapter.cancelDiscovery();
+            }
+
+            bluetoothAdapter.startDiscovery();
+        }
+    }
+
+
+    private AdapterView.OnItemClickListener DeviceClickListener=new AdapterView.OnItemClickListener() {
         @SuppressLint("MissingPermission")
         @Override
         public void onItemClick(AdapterView<?> adapterView,
@@ -94,7 +143,7 @@ public class DeviceListActivity extends AppCompatActivity {
             // only address is needed, so the length of deviceinfo minus 17
             String deviceaddress=deviceinfo.substring(deviceinfo.length()-17);
             Intent intent =new Intent();
-            intent.putExtra("deviceAddress",deviceaddress);
+            intent.putExtra(EXTRA_DEVICE_ADDRESS,deviceaddress);
 
             // pass the intent
             setResult(Activity.RESULT_OK,intent);
@@ -102,8 +151,9 @@ public class DeviceListActivity extends AppCompatActivity {
         }
     };
 
+
     // listen the incoming device
-    private BroadcastReceiver DeviceDetecter = new BroadcastReceiver() {
+    private final BroadcastReceiver DeviceDetecter = new BroadcastReceiver() {
         @SuppressLint("MissingPermission")
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -132,46 +182,4 @@ public class DeviceListActivity extends AppCompatActivity {
             }
         }
     };
-
-    @Override
-    // Create the Option Menu
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.menu_device_list, menu);
-        return super.onCreateOptionsMenu(menu);
-    }
-
-    @Override
-    // It will be called when option menu selected
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // When user select "Scan Device" button
-        switch (item.getItemId()) {
-            case R.id.menu_scan_devices:
-                scanNewDevices();
-                Toast.makeText(context, "Scan device clicked", Toast.LENGTH_SHORT).show();
-                return true;
-            default:
-                return super.onOptionsItemSelected(item);
-        }
-    }
-
-    @SuppressLint("MissingPermission")
-    private void scanNewDevices() {
-        if (!bluetoothAdapter.isEnabled()) {
-            Toast.makeText(context, "Please open Bluetooth before scan", Toast.LENGTH_SHORT).show();
-        } else {
-            // make it visible
-            Scanning.setVisibility(View.VISIBLE);
-
-            //remove all current available device in the list to update the list
-            AvailableListAdapter.clear();
-            Toast.makeText(context, "Scanning", Toast.LENGTH_SHORT).show();
-
-            // if the user click scan button again, the discover function should be cancel first to avoid the loop
-            if (bluetoothAdapter.isDiscovering()) {
-                bluetoothAdapter.cancelDiscovery();
-            }
-
-            bluetoothAdapter.startDiscovery();
-        }
-    }
 }
