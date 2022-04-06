@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
+
+    <Button
+        android:id="@+id/btON"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="ON"
+        />
+
+    <Button
+        android:id="@+id/btOFF"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="OFF"
+        android:layout_toRightOf="@+id/btON"
+        />
+
+    <Button
+        android:id="@+id/btSHOW"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Show"
+        android:layout_toRightOf="@+id/btOFF"
+        />
+
+    <Button
+        android:id="@+id/btDISCOVER"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_toRightOf="@+id/btSHOW"
+        android:text="DISCOVER" />
+
+    <Button
+        android:id="@+id/btENABLE"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="ENABLE"
+        android:layout_below="@+id/btON"
+        />
+
+    <Button
+        android:id="@+id/btSCAN"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="ENABLE"
+        android:layout_below="@+id/btOFF"
+        android:layout_toRightOf="@+id/btENABLE"
+        />
+
+    <ListView
+        android:id="@+id/scanlistview"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginTop="100dp" />
+
+</RelativeLayout>
