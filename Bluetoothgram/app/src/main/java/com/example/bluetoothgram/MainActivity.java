@@ -23,6 +23,11 @@ import android.view.Menu;
 import android.view.MenuItem;
 
 import android.os.Bundle;
+import android.view.View;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.ListView;
 import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity {
@@ -45,9 +50,13 @@ public class MainActivity extends AppCompatActivity {
     private static final int LOCATION_PERMISSION_REQUEST = 101;        // create a location permission request
     private static final int CHOSE_DEVICE = 102;
 
-    //
-    private final int REQUEST_CONNECT_DEVICE = 1;
-    public static final int REQUEST_ENABLE_BT = 2;
+
+    // for chat message use
+    private ListView ChatView;
+    private EditText EditMessage;
+    private Button SendButton;
+    private ArrayAdapter<String> ChatArrayAdapter;             // adapter for listview
+    private StringBuffer OutputStringBuffer;
 
 
     @Override
@@ -64,7 +73,48 @@ public class MainActivity extends AppCompatActivity {
 
         // set the bluetooth adapter
         bluetoothAdapter=BluetoothAdapter.getDefaultAdapter();
-        //ChatService = new ChatServiceActivity(context, handler);
+        ChatService = new ChatServiceActivity(context, handler);
+
+         ChatSetup();
+    }
+
+    private void ChatSetup(){
+        ChatView=(ListView)findViewById(R.id.list);
+        EditMessage=(EditText)findViewById(R.id.message);
+        SendButton = (Button)findViewById(R.id.button_send);
+
+        ChatArrayAdapter=new ArrayAdapter<String>(this, R.layout.paired_device_list);
+        ChatView.setAdapter(ChatArrayAdapter);
+
+        SendButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            // send the message string when click SendButton
+            public void onClick(View v) {
+                String message = EditMessage.getText().toString();
+                sendMessage(message);
+            }
+        });
+        ChatService = new ChatServiceActivity(this,handler);
+        OutputStringBuffer=new StringBuffer("");
+    }
+
+
+    private void sendMessage(String message){
+        if(ChatService.getState() != ChatService.STATE_CONNECTED){
+            // show error message to user when it is not connect to other device
+            Toast.makeText(context, "Not Connected",Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if(message.length() > 0){
+            // check the length of message string before send the message
+            byte[] send=message.getBytes();
+            ChatService.write(send);
+
+            // clean the text in edittext after sent message
+            OutputStringBuffer.setLength(0);
+            EditMessage.setText(OutputStringBuffer);
+        }
     }
 
 
@@ -214,6 +264,7 @@ public class MainActivity extends AppCompatActivity {
             switch (msg.what) {
                 case MESSAGE_STATE_CHANGE:
                     switch (msg.arg1){
+                        // show the state in the system UI
                         case ChatServiceActivity.STATE_NONE:
                             setState("Not Connected");
                             break;
@@ -229,27 +280,41 @@ public class MainActivity extends AppCompatActivity {
                     }
                     break;
                 case MESSAGE_WRITE:
+                    byte[]writeBuf =(byte[])msg.obj;
+                    // convert to the string and pass the buffer here
+                    String writeMessage=new String(writeBuf);
+                    // add to the adapter
+                    ChatArrayAdapter.add("Me： " + writeMessage);
                     break;
                 case MESSAGE_READ:
+                    // store the input buffer
+                    byte[]readBuf =(byte[])msg.obj;
+                    // convert the buffer to string
+                    String readMessage=new String(readBuf,0,msg.arg1);
+                    // add the string to adapter
+                    ChatArrayAdapter.add(ConnectedDeviceName+": " +readMessage);
                     break;
                 case MESSAGE_DEVICE_NAME:
                     ConnectedDeviceName=msg.getData().getString(DEVICE_NAME);
+                    // create a toast to show the connected device name
                     Toast.makeText(context, ConnectedDeviceName, Toast.LENGTH_SHORT).show();
                     break;
                 case MESSAGE_TOAST:
-                    Toast.makeText(context, obtainMessage().getData().getString(TOAST), Toast.LENGTH_SHORT).show();
+                    if(obtainMessage()!=null && obtainMessage().getData().getString(TOAST)!=null){
+                        Toast.makeText(context, obtainMessage().getData().getString(TOAST), Toast.LENGTH_SHORT).show();
+                    }
                     break;
             }
         }
     };
 
 
-        @Override
-        public synchronized void onDestroy () {
-            super.onDestroy();
-            // call stop method in ChatService if ChatService is exist
-            if (ChatService != null)
-                ChatService.stop();
-        }
+    @Override
+    public synchronized void onDestroy () {
+        super.onDestroy();
+        // call stop method in ChatService if ChatService is exist
+        if (ChatService != null)
+            ChatService.stop();
+    }
 
 }

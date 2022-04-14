@@ -11,12 +11,15 @@
         android:layout_height="wrap_content"
         android:layout_weight="1"
         >
+
         <ListView
             android:id="@+id/list"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            >
-        </ListView>
+            android:layout_alignParentEnd="true"
+            android:layout_alignParentBottom="true"
+            android:layout_marginEnd="0dp"
+            android:layout_marginBottom="0dp"></ListView>
     </RelativeLayout>
 
 
@@ -25,6 +28,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         >
+
         <EditText
             android:id="@+id/password"
             android:layout_width="match_parent"
@@ -39,19 +43,21 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         >
+
         <EditText
             android:id="@+id/message"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="Input message"
             android:inputType="text" />
+
         <Button
             android:id="@+id/button_send"
-            android:layout_alignParentRight="true"
-            android:layout_alignParentEnd="true"
             android:layout_width="48dp"
             android:layout_height="wrap_content"
-            android:icon="@drawable/ic_send"/>
+            android:layout_alignParentEnd="true"
+            android:layout_alignParentRight="true"
+            android:icon="@drawable/ic_send" />
     </RelativeLayout>
 
 
