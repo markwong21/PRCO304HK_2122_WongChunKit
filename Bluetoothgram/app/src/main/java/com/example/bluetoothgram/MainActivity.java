@@ -140,6 +140,12 @@ public class MainActivity extends AppCompatActivity {
             case R.id.menu_switch_bluetooth:
                 switchBluetooth();
                 return true;
+
+            // When user select "Open Bluetooth" button, call switchBluetooth()
+            case R.id.menu_change_lockcode:
+                Intent intent = new Intent(MainActivity.this,ChangeLockCodeActivity.class);
+                startActivityForResult(intent, 0);
+
             default:
                 return super.onOptionsItemSelected(item);
         }

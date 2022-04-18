@@ -14,4 +14,8 @@
         android:title="Switch Bluetooth"
         app:showAsAction="always"
         />
+    <item
+        android:id="@+id/menu_change_lockcode"
+        android:title="Change Lock Code"
+        />
 </menu>
