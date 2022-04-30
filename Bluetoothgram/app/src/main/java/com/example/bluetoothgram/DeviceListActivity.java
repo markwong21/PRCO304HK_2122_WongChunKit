@@ -8,11 +8,13 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothSocket;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -56,8 +58,8 @@ public class DeviceListActivity extends AppCompatActivity {
         AvailableList = findViewById(R.id.available_list);
         Scanning = findViewById(R.id.progress_scaning);
 
-        PairedListAdapter = new ArrayAdapter<String>(context, R.layout.available_device_list);
-        AvailableListAdapter = new ArrayAdapter<String>(context, R.layout.paired_device_list);
+        PairedListAdapter = new ArrayAdapter<String>(context, R.layout.paired_device_list);
+        AvailableListAdapter = new ArrayAdapter<String>(context, R.layout.available_device_list);
 
         // set adapter in the list
         PairedList.setAdapter(PairedListAdapter);

@@ -18,24 +18,50 @@
             android:layout_height="wrap_content"
             android:layout_alignParentEnd="true"
             android:layout_alignParentBottom="true"
-            android:layout_marginEnd="0dp"
-            android:layout_marginBottom="0dp"
-            />
+            android:layout_marginEnd="1dp"
+            android:layout_marginBottom="0dp" />
+
+        <Button
+            android:id="@+id/button_talk"
+            android:layout_width="200dp"
+            android:layout_height="200dp"
+            android:layout_marginLeft="100dp"
+            android:layout_marginTop="150dp"
+            android:layout_marginRight="100dp"
+            android:layout_marginBottom="100dp"
+            android:text="Talk" />
     </RelativeLayout>
 
 
     <RelativeLayout
-        android:id="@+id/encryption_key_layout"
+        android:id="@+id/Walkie_Talkie_layout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         >
 
-        <EditText
-            android:id="@+id/password"
-            android:layout_width="match_parent"
+        <Button
+            android:id="@+id/button_listen"
+            android:layout_width="100dp"
             android:layout_height="wrap_content"
-            android:hint="Set encryption key"
-            android:inputType="text" />
+            android:layout_weight="1"
+            android:text="Listen" />
+
+        <Button
+            android:id="@+id/button_listWalkieDevice"
+            android:layout_width="190dp"
+            android:layout_height="wrap_content"
+            android:layout_toRightOf="@+id/button_listen"
+            android:layout_weight="1"
+            android:text="List Walkie Device" />
+
+        <Button
+            android:id="@+id/button_switchConnect"
+            android:layout_width="120dp"
+            android:layout_height="wrap_content"
+            android:layout_toRightOf="@+id/button_listWalkieDevice"
+            android:layout_weight="1"
+            android:text="Disonnect" />
+
     </RelativeLayout>
 
 
@@ -54,11 +80,11 @@
 
         <Button
             android:id="@+id/button_send"
-            android:layout_width="48dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_alignParentEnd="true"
             android:layout_alignParentRight="true"
-            android:icon="@drawable/ic_send" />
+            android:text="Send" />
     </RelativeLayout>
 
 

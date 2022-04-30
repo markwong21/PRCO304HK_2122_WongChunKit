@@ -204,33 +204,37 @@ public class ChatServiceActivity {
 
             public void run() {
                 // connect this service socket
-                BluetoothSocket socket= null;
+                BluetoothSocket socket = null;
 
-                while(CurrentState != STATE_CONNECTED){
-                    try{
+                while (CurrentState != STATE_CONNECTED) {
+                    try {
                         socket = ServerSocket.accept();
-                    }catch (IOException e) {
+                    } catch (IOException e) {
                         break;
                     }
                     // close if it is successful
-                    if(socket != null){
-                        connected(socket,socket.getRemoteDevice());
-                        try{
+                    if (socket != null) {
+                        connected(socket, socket.getRemoteDevice());
+                        try {
                             // close the server socket
                             ServerSocket.close();
-                        }catch (IOException e){}
+                        } catch (IOException e) {
+                        }
                     }
                 }
             }
 
 
             // close the server socket
-            public void cancel(){
-                try{
+            public void cancel() {
+                try {
                     ServerSocket.close();
-                }catch (IOException e){}
+                } catch (IOException e) {
+                }
             }
         }
+
+
 
         // create a thread to handle all connectivity
         private class ConnectThread extends Thread {
@@ -280,7 +284,6 @@ public class ChatServiceActivity {
             }
 
             public void cancel() {}
-
         }
 
         // create a thread to handle sending and receiving message

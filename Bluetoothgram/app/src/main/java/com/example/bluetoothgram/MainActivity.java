@@ -13,22 +13,30 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothSocket;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Handler;
 import android.os.Message;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 
 import android.os.Bundle;
+import android.view.MotionEvent;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.Toast;
+
+import java.util.ArrayList;
+import java.util.Set;
+import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity {
     // define the message type
@@ -40,6 +48,7 @@ public class MainActivity extends AppCompatActivity {
 
     private Context context;                                    // create context for toast
     private BluetoothAdapter bluetoothAdapter;                  // Bluetooth Adapter view for switching Bluetooth
+    private BluetoothAdapter walkie_bluetoothAdapter;
 
     public static final String DEVICE_NAME = "device_name";
     public static final String TOAST = "toast";
@@ -50,19 +59,44 @@ public class MainActivity extends AppCompatActivity {
     private static final int LOCATION_PERMISSION_REQUEST = 101;        // create a location permission request
     private static final int CHOSE_DEVICE = 102;
 
-
     // for chat message use
-    private ListView ChatView;
+    private ListView ChatView, PairedWalkieListView;
     private EditText EditMessage;
-    private Button SendButton;
+    private Button SendButton, ListenButton, SwitchConnectButton, ListWalkieDeviceButton, TalkButton;
     private ArrayAdapter<String> ChatArrayAdapter;             // adapter for listview
     private StringBuffer OutputStringBuffer;
+
+    // Requesting permission to RECORD_AUDIO
+    private static final int RECORD_AUDIO_PERMISSION_REQUEST = 200;
+    private boolean RecordPermission = false;
+    private String [] record_permission = {Manifest.permission.RECORD_AUDIO};
+
+    private static final UUID APP_UUID = UUID.fromString("9f507539-bdfd-45ab-921d-c844f878489f");
+    private WalkieConversation WalkieAudio;
+    private WalkieListenThread walkieListenThread;
+    private WalkieConnectThread walkieConnectThread;
+    private BluetoothSocket WalkieBluetoothSocket;
+
+    private boolean WalkieListenStatus = false;
+    private boolean WalkieConnectStatus = false;
+
+    private ArrayList<WalkieInfo> PairedWalkieList;
+    private ArrayAdapter<WalkieInfo> WalkieAdapter;
+    private Set<BluetoothDevice> PairedWalkieDevice;
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        ActivityCompat.requestPermissions(this, record_permission, RECORD_AUDIO_PERMISSION_REQUEST);
+
+        PairedWalkieListView=(ListView)findViewById(R.id.list);
+        ListenButton = (Button)findViewById(R.id.button_listen);
+        SwitchConnectButton = (Button)findViewById(R.id.button_switchConnect);
+        ListWalkieDeviceButton = (Button)findViewById(R.id.button_listWalkieDevice);
+        TalkButton = (Button)findViewById(R.id.button_talk);
 
         context = this;
 
@@ -71,11 +105,167 @@ public class MainActivity extends AppCompatActivity {
                 new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
                 MY_PERMISSIONS_REQUEST_ACCESS_COARSE_LOCATION);
 
+        walkieListenThread = new WalkieListenThread();
+        walkieConnectThread = new WalkieConnectThread();
+        WalkieAudio = new WalkieConversation();
+
+        // Disable microphone button
+        TalkButton.setVisibility(TalkButton.GONE);
+
         // set the bluetooth adapter
         bluetoothAdapter=BluetoothAdapter.getDefaultAdapter();
+        walkie_bluetoothAdapter=BluetoothAdapter.getDefaultAdapter();
         ChatService = new ChatServiceActivity(context, handler);
 
-         ChatSetup();
+        // when listen button was click
+        ListenButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View arg0) {
+                ListenButton.setEnabled(false);
+                ListWalkieDeviceButton.setEnabled(false);
+                PairedWalkieListView.setVisibility(ListView.GONE);
+
+                boolean connectSuccess = walkieListenThread.ConnectAccept(walkie_bluetoothAdapter, APP_UUID);
+                Toast.makeText(context, "Wait", Toast.LENGTH_SHORT).show();
+
+                // Toast notification on status.
+                if (connectSuccess) {
+                    WalkieBluetoothSocket = walkieListenThread.getSocket();
+                    WalkieAudio.CreateAudio();
+                    WalkieAudio.setSocket(WalkieBluetoothSocket);
+                    WalkieAudio.setupStreams();
+                    WalkieAudio.startPlay();
+                    WalkieListenStatus = true;
+                    TalkButton.setVisibility(TalkButton.VISIBLE);
+                    Toast.makeText(context, "Success", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(context, "Fail", Toast.LENGTH_SHORT).show();
+                    ListenButton.setEnabled(true);
+                    SwitchConnectButton.setEnabled(true);
+                }
+            }
+        });
+
+        ListWalkieDeviceButton.setOnClickListener(new View.OnClickListener(){
+            @SuppressLint("MissingPermission")
+            @Override
+            public void onClick(View arg0) {
+
+                // Handle UI changes
+                PairedWalkieListView.setVisibility(ListView.VISIBLE);
+                ListWalkieDeviceButton.setEnabled(false);
+
+                // List to store all paired device information
+                PairedWalkieList = new ArrayList<WalkieInfo>();
+                PairedWalkieDevice = walkie_bluetoothAdapter.getBondedDevices();
+
+                // Populate list with the paired device information
+                if (PairedWalkieDevice.size() > 0) {
+                    for (BluetoothDevice device : PairedWalkieDevice) {
+                        WalkieInfo newDevice= new WalkieInfo(device.getName(),device.getAddress());
+                        PairedWalkieList.add(newDevice);
+                    }
+                }
+
+                // No devices found
+                if (PairedWalkieList.size() == 0) {
+                    Toast.makeText(context, "No paired device", Toast.LENGTH_SHORT).show();
+                }
+
+                // Populate List view with device information
+                WalkieAdapter = new ArrayAdapter<WalkieInfo>(MainActivity.this, android.R.layout.simple_list_item_1, PairedWalkieList);
+                PairedWalkieListView.setAdapter(WalkieAdapter);
+            }
+        });
+
+
+        SwitchConnectButton.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View arg0) {
+                boolean disconnectListen = false;
+                boolean disconnectConnect = false;
+
+                ListenButton.setEnabled(true);
+                ListWalkieDeviceButton.setEnabled(true);
+                PairedWalkieListView.setVisibility(ListView.GONE);
+
+                // Close the bluetooth socket
+                if (WalkieListenStatus) {
+                    disconnectListen = walkieListenThread.closeConnect();
+                    WalkieListenStatus = false;
+                }
+                if (WalkieConnectStatus) {
+                    disconnectConnect = walkieConnectThread.closeConnect();
+                    WalkieConnectStatus = false;
+                }
+
+                WalkieAudio.destroyProcesses();
+
+                if (disconnectListen || disconnectConnect) {
+                    // Disconnect successful - Handle UI element change
+                    TalkButton.setVisibility(TalkButton.GONE);
+                    ListenButton.setEnabled(true);
+                    ListWalkieDeviceButton.setEnabled(true);
+                } else {
+                    // Unsuccessful disconnect - Do nothing
+                }
+            }
+        });
+
+
+        // Attempt to connect when paired device is clicked in ListView
+        PairedWalkieListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+
+                // Get the MAC address of the device you want to connect to
+                BluetoothDevice device = walkie_bluetoothAdapter.getRemoteDevice(PairedWalkieList.get(position).getAddress());
+
+                // Connect to the device
+                boolean connectSuccess = walkieConnectThread.connect(device, APP_UUID);
+
+                // Toast notification on status.
+                if (connectSuccess) {
+                    // Handle socket objects
+                    WalkieBluetoothSocket = walkieConnectThread.getSocket();
+
+                    // Start listening for audio from other device
+                    WalkieAudio.CreateAudio();
+                    WalkieAudio.setSocket(WalkieBluetoothSocket);
+                    WalkieAudio.setupStreams();
+                    WalkieAudio.startPlay();
+
+                    // Change status of UI elements
+                    PairedWalkieListView.setVisibility(ListView.GONE);
+                    TalkButton.setVisibility(TalkButton.VISIBLE);
+                    ListenButton.setEnabled(false);
+                    ListWalkieDeviceButton.setEnabled(false);
+                    WalkieConnectStatus = true;
+                }
+            }
+            });
+
+
+        TalkButton.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                int action = event.getAction();
+                if (action == MotionEvent.ACTION_DOWN ) {
+
+                    WalkieAudio.stopPlay();
+                    WalkieAudio.startRecord();
+
+                } else if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL ) {
+
+                    WalkieAudio.stopRecord();
+                    WalkieAudio.startPlay();
+                }
+                return false;
+            }
+        });
+
+
+        ChatSetup();
     }
 
     private void ChatSetup(){
@@ -212,6 +402,9 @@ public class MainActivity extends AppCompatActivity {
             // if the request equal to
             case CHOSE_DEVICE:
                 if (resultCode == Activity.RESULT_OK) {
+                    ChatView=(ListView)findViewById(R.id.list);
+                    PairedWalkieListView.setVisibility(ListView.GONE);
+
                     // get the address
                     String deviceaddress = data.getExtras().getString(DeviceListActivity.EXTRA_DEVICE_ADDRESS);
                     BluetoothDevice device = bluetoothAdapter.getRemoteDevice(deviceaddress);

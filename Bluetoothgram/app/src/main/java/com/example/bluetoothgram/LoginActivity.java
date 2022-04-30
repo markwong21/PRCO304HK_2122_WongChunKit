@@ -50,13 +50,13 @@ public class LoginActivity extends AppCompatActivity {
                     Toast.makeText(LoginActivity.this, "Invalid login, No of attempts remaining: " + String.valueOf(counter), Toast.LENGTH_SHORT).show();
                     if(counter <= 0){
                         // Disable the login button if login fail in five times in a row
-                        button_Login.setEnabled(false);
                         BlockLogin();
                     }
                 }
             }
 
             public void BlockLogin(){
+                button_Login.setEnabled(false);
                 // Start to count 5 minutes for disable the login button
                 Timer = new CountDownTimer(300000, 1000) {
                     public void onTick(long millisUntilFinished) {
