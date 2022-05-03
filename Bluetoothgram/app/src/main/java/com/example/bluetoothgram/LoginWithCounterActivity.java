@@ -1,6 +1,5 @@
 package com.example.bluetoothgram;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
@@ -12,7 +11,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
-public class LoginActivity extends AppCompatActivity {
+public class LoginWithCounterActivity extends AppCompatActivity {
     EditText editText_enterLockCode;
     Button button_Login;
 
@@ -23,7 +22,12 @@ public class LoginActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_login);
+        setContentView(R.layout.activity_login_with_counter);
+
+        // load the latest login attempt
+        SharedPreferences COUNTER = getSharedPreferences("login_counter", 0);
+        StringCounter = COUNTER.getString("login_counter", "");
+        counter=Integer.parseInt(StringCounter);
 
         // load the lock code
         SharedPreferences PIN = getSharedPreferences("pin", 0);
@@ -32,8 +36,7 @@ public class LoginActivity extends AppCompatActivity {
         editText_enterLockCode = (EditText) findViewById(R.id.enterLockCode);
         button_Login = (Button) findViewById(R.id.button_Login);
 
-        // the user have 5 times of chance to login
-        counter = 5;
+        checkLoginCount();
 
         button_Login.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -44,13 +47,6 @@ public class LoginActivity extends AppCompatActivity {
                 if (text.equals(LockCode)) {
                     // set the number of attempts to 5 times
                     counter=5;
-
-                    // save the number of attempts
-                    StringCounter = Integer.toString(counter);
-                    SharedPreferences COUNTER = getSharedPreferences("login_counter", 0);
-                    SharedPreferences.Editor editor = COUNTER.edit();
-                    editor.putString("login_counter",StringCounter);
-                    editor.apply();
 
                     // Go to the main page
                     Intent intent = new Intent(getApplicationContext(), MainActivity.class);
@@ -67,17 +63,26 @@ public class LoginActivity extends AppCompatActivity {
                     editor.putString("login_counter",StringCounter);
                     editor.apply();
 
-                    Toast.makeText(LoginActivity.this, "Invalid login, No of attempts remaining: " + String.valueOf(counter), Toast.LENGTH_SHORT).show();
+                    Toast.makeText(LoginWithCounterActivity.this, "Invalid login, No of attempts remaining: " + String.valueOf(counter), Toast.LENGTH_SHORT).show();
 
                     if(counter <= 0){
                         // lock the login button
                         BlockLogin();
-                        Toast.makeText(LoginActivity.this, "The login was blocked for 5 minutes", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(LoginWithCounterActivity.this, "The login was blocked for 5 minutes", Toast.LENGTH_SHORT).show();
                         Timer.start();
                     }
                 }
             }
         });
+    }
+
+    public void checkLoginCount(){
+        if(counter <= 0){
+            // lock the login button
+            BlockLogin();
+        } else if (counter > 0){
+            Toast.makeText(LoginWithCounterActivity.this, "Please login", Toast.LENGTH_SHORT).show();
+        }
     }
 
     public void BlockLogin(){
@@ -99,7 +104,7 @@ public class LoginActivity extends AppCompatActivity {
                 editor.apply();
             }
         };
-        Toast.makeText(LoginActivity.this, "The login was blocked for 5 minutes", Toast.LENGTH_SHORT).show();
+        Toast.makeText(LoginWithCounterActivity.this, "The login was blocked for 5 minutes", Toast.LENGTH_SHORT).show();
         Timer.start();
     }
 }

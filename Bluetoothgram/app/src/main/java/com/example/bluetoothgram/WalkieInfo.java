@@ -1,23 +1,22 @@
 package com.example.bluetoothgram;
 
 public class WalkieInfo {
-    private String name;
-    private String address;
+    private String DeviceName;
+    private String DeviceAddress;
 
     public WalkieInfo(String name, String address) {
-        this.name = name;
-        this.address = address;
+        this.DeviceName = name;
+        this.DeviceAddress = address;
     }
 
-    // Return Device name
     public String getName()
     {
-        return name;
+        return DeviceName;      // return device name
     }
-    // Return Device address
+
     public String getAddress()
     {
-        return address;
+        return DeviceAddress;   // return device MAC address
     }
 
     @Override

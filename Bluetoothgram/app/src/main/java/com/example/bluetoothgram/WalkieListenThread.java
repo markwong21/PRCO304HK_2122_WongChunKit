@@ -19,37 +19,38 @@ public class WalkieListenThread {
         try {
             WalkieServerSocket = adapter.listenUsingRfcommWithServiceRecord("BTService", ConnectUUID);
         } catch(IOException e) {
-
+            Log.d("WalkieListenThread", "Fail to use RFCOMM to listen");
         }
 
         try {
             WalkieListenSocket = WalkieServerSocket.accept();
         } catch (IOException e) {
-
+            Log.d("WalkieListenThread", "Fail to accept connection");
         }
         if (WalkieListenSocket != null) {
             try {
                 WalkieServerSocket.close();
             } catch (IOException e) {
-
+                Log.d("WalkieListenThread", "Fail to close socket");
             }
             return true;
         }
         return false;
     }
 
-    // Close connection
+
     public boolean closeConnect() {
         try {
-            WalkieListenSocket.close();
+            WalkieListenSocket.close();     // Close connection
         } catch(IOException e) {
+            Log.d("WalkieListenThread", "Failed to close socket");
             return false;
         }
         return true;
     }
 
-    // Return socket object
+
     public BluetoothSocket getSocket() {
-        return WalkieListenSocket;
+        return WalkieListenSocket;          // Return socket
     }
 }

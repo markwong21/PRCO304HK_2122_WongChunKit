@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.util.Log;
+import android.widget.Toast;
 
 import java.io.IOException;
 import java.util.UUID;
@@ -12,56 +13,50 @@ public class WalkieConnectThread {
     private BluetoothDevice WalkieBluetoothDevice;
     private BluetoothSocket WalkieBluetoothSocket;
 
-    // Establish connection
     @SuppressLint("MissingPermission")
-    public boolean connect(BluetoothDevice walkiedevice, UUID UUID) {
-
-        // Get the MAC address
-        WalkieBluetoothDevice = walkiedevice;
+    public boolean connect(BluetoothDevice walkiedevice, UUID UUID) {   // Buildup connection
+        WalkieBluetoothDevice = walkiedevice;                           // Capture the MAC address
 
         try {
-            // Create a RFCOMM socket with the UUID
+            // Made a new RFCOMM socket with UUID
             WalkieBluetoothSocket = WalkieBluetoothDevice.createRfcommSocketToServiceRecord(UUID);
         }
         catch (IOException e) {
-            Log.d("CONNECT", "Failed at create RFCOMM");
+            Log.d("WalkieConnectThread", "Failed to create RFCOMM socket");
             return false;
         }
 
         if (WalkieBluetoothSocket == null) {
-            return false;
+            return false;                           // return false if there is no socket
         }
 
         try {
-            // Try to connect
-            WalkieBluetoothSocket.connect();
+            WalkieBluetoothSocket.connect();        // connect by using WalkieBluetoothSocket
         } catch(IOException e) {
-            Log.d("CONNECT", "Failed at socket connect");
+            Log.d("WalkieConnectThread", "Failed to connect at socket");
             try {
                 WalkieBluetoothSocket.close();
             } catch(IOException close) {
-                Log.d("CONNECT", "Failed at socket close");
+                Log.d("WalkieConnectThread", "Failed to close at socket");
             }
-            // Moved return false out from inner catch, making it return false when connect is unsuccessful.
-            // Return value used to determine if intent switch to next screen.
-            return false;
+            return false;                           // return false if connect false
         }
         return true;
     }
 
-    // Close connection
+
     public boolean closeConnect() {
         try {
-            WalkieBluetoothSocket.close();
+            WalkieBluetoothSocket.close();          // Disconnect
         } catch(IOException e) {
-            Log.d("CONNECT", "Failed at socket close");
+            Log.d("WalkieConnectThread", "Failed to close at socket");
             return false;
         }
         return true;
     }
 
-    // Returns the bluetooth socket object
+
     public BluetoothSocket getSocket() {
-        return WalkieBluetoothSocket;
+        return WalkieBluetoothSocket;               // Returns the bluetooth socket object
     }
 }

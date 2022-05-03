@@ -92,7 +92,7 @@ public class MainActivity extends AppCompatActivity {
 
         ActivityCompat.requestPermissions(this, record_permission, RECORD_AUDIO_PERMISSION_REQUEST);
 
-        PairedWalkieListView=(ListView)findViewById(R.id.list);
+        PairedWalkieListView=(ListView)findViewById(R.id.Walkie_list);
         ListenButton = (Button)findViewById(R.id.button_listen);
         SwitchConnectButton = (Button)findViewById(R.id.button_switchConnect);
         ListWalkieDeviceButton = (Button)findViewById(R.id.button_listWalkieDevice);
@@ -123,7 +123,7 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View arg0) {
                 ListenButton.setEnabled(false);
                 ListWalkieDeviceButton.setEnabled(false);
-                PairedWalkieListView.setVisibility(ListView.GONE);
+                PairedWalkieListView.setVisibility(View.GONE);
 
                 boolean connectSuccess = walkieListenThread.ConnectAccept(walkie_bluetoothAdapter, APP_UUID);
                 Toast.makeText(context, "Wait", Toast.LENGTH_SHORT).show();
@@ -152,7 +152,7 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View arg0) {
 
                 // Handle UI changes
-                PairedWalkieListView.setVisibility(ListView.VISIBLE);
+                PairedWalkieListView.setVisibility(View.VISIBLE);
                 ListWalkieDeviceButton.setEnabled(false);
 
                 // List to store all paired device information
@@ -187,7 +187,7 @@ public class MainActivity extends AppCompatActivity {
 
                 ListenButton.setEnabled(true);
                 ListWalkieDeviceButton.setEnabled(true);
-                PairedWalkieListView.setVisibility(ListView.GONE);
+                PairedWalkieListView.setVisibility(View.GONE);
 
                 // Close the bluetooth socket
                 if (WalkieListenStatus) {
@@ -206,6 +206,9 @@ public class MainActivity extends AppCompatActivity {
                     TalkButton.setVisibility(TalkButton.GONE);
                     ListenButton.setEnabled(true);
                     ListWalkieDeviceButton.setEnabled(true);
+                    if(PairedWalkieListView.getVisibility() == View.VISIBLE){
+                        PairedWalkieListView.setVisibility(View.GONE);
+                    }
                 } else {
                     // Unsuccessful disconnect - Do nothing
                 }
@@ -236,7 +239,7 @@ public class MainActivity extends AppCompatActivity {
                     WalkieAudio.startPlay();
 
                     // Change status of UI elements
-                    PairedWalkieListView.setVisibility(ListView.GONE);
+                    PairedWalkieListView.setVisibility(View.GONE);
                     TalkButton.setVisibility(TalkButton.VISIBLE);
                     ListenButton.setEnabled(false);
                     ListWalkieDeviceButton.setEnabled(false);
@@ -269,7 +272,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void ChatSetup(){
-        ChatView=(ListView)findViewById(R.id.list);
+        ChatView=(ListView)findViewById(R.id.Message_list);
         EditMessage=(EditText)findViewById(R.id.message);
         SendButton = (Button)findViewById(R.id.button_send);
 
@@ -402,8 +405,8 @@ public class MainActivity extends AppCompatActivity {
             // if the request equal to
             case CHOSE_DEVICE:
                 if (resultCode == Activity.RESULT_OK) {
-                    ChatView=(ListView)findViewById(R.id.list);
-                    PairedWalkieListView.setVisibility(ListView.GONE);
+                    ChatView=(ListView)findViewById(R.id.Message_list);
+                    PairedWalkieListView.setVisibility(View.GONE);
 
                     // get the address
                     String deviceaddress = data.getExtras().getString(DeviceListActivity.EXTRA_DEVICE_ADDRESS);
@@ -471,9 +474,13 @@ public class MainActivity extends AppCompatActivity {
                             setState("Not Connected");
                             break;
                         case ChatServiceActivity.STATE_CONNECTING:
+                            PairedWalkieListView.setVisibility(View.GONE);
+                            TalkButton.setVisibility(TalkButton.GONE);
                             setState("Connecting, please wait");
                             break;
                         case ChatServiceActivity.STATE_CONNECTED:
+                            PairedWalkieListView.setVisibility(View.GONE);
+                            TalkButton.setVisibility(TalkButton.GONE);
                             setState("Connected to: " + ConnectedDeviceName);
                             break;
                     }
@@ -482,16 +489,22 @@ public class MainActivity extends AppCompatActivity {
                     byte[]writeBuf =(byte[])msg.obj;
                     // convert to the string and pass the buffer here
                     String writeMessage=new String(writeBuf);
+                    PairedWalkieListView.setVisibility(View.GONE);
+                    TalkButton.setVisibility(TalkButton.GONE);
                     // add to the adapter
                     ChatArrayAdapter.add("Me： " + writeMessage);
+                    ChatView.setVisibility(View.VISIBLE);
                     break;
                 case MESSAGE_READ:
                     // store the input buffer
                     byte[]readBuf =(byte[])msg.obj;
                     // convert the buffer to string
                     String readMessage=new String(readBuf,0,msg.arg1);
+                    PairedWalkieListView.setVisibility(View.GONE);
+                    TalkButton.setVisibility(TalkButton.GONE);
                     // add the string to adapter
                     ChatArrayAdapter.add(ConnectedDeviceName+": " +readMessage);
+                    ChatView.setVisibility(View.VISIBLE);
                     break;
                 case MESSAGE_DEVICE_NAME:
                     ConnectedDeviceName=msg.getData().getString(DEVICE_NAME);

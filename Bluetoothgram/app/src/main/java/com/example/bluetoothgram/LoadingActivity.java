@@ -9,7 +9,7 @@ import android.os.Handler;
 import android.widget.Toast;
 
 public class LoadingActivity extends AppCompatActivity {
-    String LockCode;
+    String LockCode, StringCounter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -19,6 +19,9 @@ public class LoadingActivity extends AppCompatActivity {
         // load the lock code
         SharedPreferences PIN = getSharedPreferences("pin", 0);
         LockCode = PIN.getString("LockCode", "");
+
+        SharedPreferences COUNTER = getSharedPreferences("login_counter", 0);
+        StringCounter = COUNTER.getString("login_counter", "");
 
         Handler handler = new Handler();
         handler.postDelayed(new Runnable() {
@@ -30,10 +33,17 @@ public class LoadingActivity extends AppCompatActivity {
                     startActivity(intent);
                     finish();
                 } else {
-                    // if there is a lock code
-                    Intent intent = new Intent(getApplicationContext(), LoginActivity.class);
-                    startActivity(intent);
-                    finish();
+                    if (StringCounter.equals("")) {
+                        // if there is a lock code and no LatestCounter
+                        Intent intent = new Intent(getApplicationContext(), LoginActivity.class);
+                        startActivity(intent);
+                        finish();
+                    } else {
+                        // if there is a lock code and LatestCounter
+                        Intent intent = new Intent(getApplicationContext(), LoginWithCounterActivity.class);
+                        startActivity(intent);
+                        finish();
+                    }
                 }
             }
         }, 100);
