@@ -1,5 +1,6 @@
 package com.example.bluetoothgram;
 
+import static android.service.controls.ControlsProviderService.TAG;
 import static com.example.bluetoothgram.ChatServiceActivity.STATE_NONE;
 
 import androidx.annotation.NonNull;
@@ -17,9 +18,13 @@ import android.bluetooth.BluetoothSocket;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Message;
+import android.preference.PreferenceManager;
+import android.util.Base64;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -34,9 +39,14 @@ import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import java.security.KeyPair;
+import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Set;
 import java.util.UUID;
+
+import javax.crypto.Cipher;
+import javax.crypto.spec.SecretKeySpec;
 
 public class MainActivity extends AppCompatActivity {
     // define the message type
@@ -84,6 +94,9 @@ public class MainActivity extends AppCompatActivity {
     private ArrayAdapter<WalkieInfo> WalkieAdapter;
     private Set<BluetoothDevice> PairedWalkieDevice;
 
+    // AES Password used to encrypt and decrypted
+    String Password = "45q238trgwyegr283r2";
+    String AES = "AES";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -97,6 +110,7 @@ public class MainActivity extends AppCompatActivity {
         SwitchConnectButton = (Button)findViewById(R.id.button_switchConnect);
         ListWalkieDeviceButton = (Button)findViewById(R.id.button_listWalkieDevice);
         TalkButton = (Button)findViewById(R.id.button_talk);
+
 
         context = this;
 
@@ -276,6 +290,7 @@ public class MainActivity extends AppCompatActivity {
         EditMessage=(EditText)findViewById(R.id.message);
         SendButton = (Button)findViewById(R.id.button_send);
 
+
         ChatArrayAdapter=new ArrayAdapter<String>(this, R.layout.paired_device_list);
         ChatView.setAdapter(ChatArrayAdapter);
 
@@ -283,7 +298,13 @@ public class MainActivity extends AppCompatActivity {
             @Override
             // send the message string when click SendButton
             public void onClick(View v) {
-                String message = EditMessage.getText().toString();
+                String message = null;
+                try {
+                    // call AES_Encrypt method to encrypt message after click "Send" button
+                    message = AES_Encrypt(EditMessage.getText().toString(), Password.toString());
+                } catch (Exception e) {
+                    Toast.makeText(context, "Encrypted failed",Toast.LENGTH_SHORT).show();
+                }
                 sendMessage(message);
             }
         });
@@ -291,6 +312,29 @@ public class MainActivity extends AppCompatActivity {
         OutputStringBuffer=new StringBuffer("");
     }
 
+    private String AES_Encrypt(String TextMessage, String password) throws Exception{
+        // Generate secret case by using given password
+        SecretKeySpec AES_key = GenKey(password);
+        // Use cipher with AES to encrypt
+        Cipher cipher = Cipher.getInstance(AES);
+        cipher.init(Cipher.ENCRYPT_MODE, AES_key);
+        byte[] EncValue = cipher.doFinal(TextMessage.getBytes());
+        // Use Base64 to encode message
+        String encryptedValue = Base64.encodeToString(EncValue, Base64.DEFAULT);
+        return encryptedValue;
+    }
+
+    // Generate secret case by using given password
+    private SecretKeySpec GenKey(String password) throws Exception{
+        // Craete an instance object of SHA-256
+        final MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
+        // Change the password to byte
+        byte[] bytes = password.getBytes("UTF-8");
+        messageDigest.update(bytes, 0, bytes.length);
+        byte[] key = messageDigest.digest();
+        SecretKeySpec secretKeySpec = new SecretKeySpec(key, "AES");
+        return secretKeySpec;
+    }
 
     private void sendMessage(String message){
         if(ChatService.getState() != ChatService.STATE_CONNECTED){
@@ -502,9 +546,27 @@ public class MainActivity extends AppCompatActivity {
                     String readMessage=new String(readBuf,0,msg.arg1);
                     PairedWalkieListView.setVisibility(View.GONE);
                     TalkButton.setVisibility(TalkButton.GONE);
-                    // add the string to adapter
-                    ChatArrayAdapter.add(ConnectedDeviceName+": " +readMessage);
-                    ChatView.setVisibility(View.VISIBLE);
+
+                    // decrypt message
+                    SecretKeySpec AES_key = null;
+                    try {
+                        // Generate secret case by using given password
+                        AES_key = GenKey(Password);
+                        // Use cipher with AES to decrypt
+                        Cipher cipher = Cipher.getInstance(AES);
+                        cipher.init(Cipher.DECRYPT_MODE, AES_key);
+                        // Use Base64 to decode message
+                        byte[] decodedValue = Base64.decode(readMessage, Base64.DEFAULT);
+                        byte[] DecValue = cipher.doFinal(decodedValue);
+                        String decryptedValue = new String(DecValue);
+
+                        // add the string to adapter
+                        ChatArrayAdapter.add(ConnectedDeviceName+": " +decryptedValue);
+                        ChatView.setVisibility(View.VISIBLE);
+                    } catch (Exception e) {
+                        Toast.makeText(context, "Decrypted failed",Toast.LENGTH_SHORT).show();
+                    }
+
                     break;
                 case MESSAGE_DEVICE_NAME:
                     ConnectedDeviceName=msg.getData().getString(DEVICE_NAME);
@@ -519,7 +581,6 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     };
-
 
     @Override
     public synchronized void onDestroy () {

@@ -21,53 +21,57 @@ public class WalkieConversation {
     private AudioTrack VoiceTrack = null;
     private InputStream inputStream;
     private OutputStream outputStream;
-    private byte buffer[] = null;
+    private byte Buffer[] = null;
     private byte PlayBuffer[] = null;
-    int MIN_Size = AudioTrack.getMinBufferSize(16000, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT);
-    private int BufferSize = MIN_Size;
+    int MIN_BufferSize = AudioTrack.getMinBufferSize(16000, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT);
+    private int BufferSize = MIN_BufferSize;
     private boolean RecordingStatus = false;
 
     public void startRecord() {
-        Log.d("AUDIO", "Assigning recorder");
-        buffer = new byte[BufferSize];
+        Log.d("VOICE", "Recording voice");
+        // the voice will be record in buffer
+        Buffer = new byte[BufferSize];
 
-        // Start Recording
+        // record voice
         VoiceRecorder.startRecording();
         RecordingStatus = true;
-        // Start a thread
+
+        // Create a new thread
         RecordThread = new Thread(new Runnable() {
             @Override
             public void run() {
                 sendRecord();
             }
-        }, "AudioRecorder Thread");
+        }, "VoiceRecorder Thread");
         RecordThread.start();
     }
 
     public void sendRecord() {
-        // Infinite loop until microphone button is released
         while (RecordingStatus) {
             try {
-                VoiceRecorder.read(buffer, 0, BufferSize);
-                outputStream.write(buffer);
+                // read the buffer from 0 byte to the end of buffer
+                VoiceRecorder.read(Buffer, 0, BufferSize);
+                // write the buffer in outputStream and send out
+                outputStream.write(Buffer);
             } catch (IOException e) {
-                Log.d("AUDIO", "Error when sending recording");
+                Log.d("AUDIO", "Fail to send audio");
             }
 
         }
     }
 
-    // Set input & output streams
     public void setupStreams() {
         try {
+            // set input stream
             inputStream = WalkieBluetoothSocket.getInputStream();
         } catch (IOException e) {
-            Log.e("SOCKET", "Error when creating input stream", e);
+            Log.e("BluetoothSocket", "Fail to create input stream", e);
         }
         try {
+            // set output stream
             outputStream = WalkieBluetoothSocket.getOutputStream();
         } catch (IOException e) {
-            Log.e("SOCKET", "Error when creating output stream", e);
+            Log.e("BluetoothSocket", "Fail to create output stream", e);
         }
     }
 
@@ -84,7 +88,7 @@ public class WalkieConversation {
         // Audio track object
         VoiceTrack = new AudioTrack(AudioManager.STREAM_MUSIC,
                 16000, AudioFormat.CHANNEL_OUT_MONO,
-                AudioFormat.ENCODING_PCM_16BIT, MIN_Size, AudioTrack.MODE_STREAM);
+                AudioFormat.ENCODING_PCM_16BIT, MIN_BufferSize, AudioTrack.MODE_STREAM);
         // Audio record object
         VoiceRecorder = new AudioRecord(MediaRecorder.AudioSource.MIC, 16000,
                 AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT,
@@ -93,52 +97,53 @@ public class WalkieConversation {
 
     // Playback received audio
     public void startPlay() {
-        Log.d("AUDIO", "Assigning player");
-        // Receive Buffer
-        PlayBuffer = new byte[MIN_Size];
-
+        Log.d("VOICE", "Play voice");
+        // Get Buffer from sender
+        PlayBuffer = new byte[MIN_BufferSize];
         VoiceTrack.play();
-        // Receive and play audio
         PlayThread = new Thread(new Runnable() {
             @Override
             public void run() {
-                receiveRecording();
+                receiveAudio();
             }
         }, "AudioTrack Thread");
+        // play audio
         PlayThread.start();
     }
 
-    // Receive audio and write into audio track object for playback
-    public void receiveRecording() {
+    public void receiveAudio() {
         while (!RecordingStatus) {
             try {
                 if (inputStream.available() == 0) {
-                    //
+                    // Nothing do because no input stream received
                 } else {
+                    // receive audio
                     inputStream.read(PlayBuffer);
+                    // write the audio to the track for play
                     VoiceTrack.write(PlayBuffer, 0, PlayBuffer.length);
                 }
             } catch (IOException e) {
-                Log.d("AUDIO", "Error when receiving recording");
+                Log.d("VOICE", "Fail to receive audio");
             }
         }
     }
 
-    // Stop playing and free up resources
     public void stopPlay() {
+        // if still playing
         if (VoiceTrack != null) {
             RecordingStatus = true;
+            // stop playing
             VoiceTrack.stop();
         }
     }
 
+    // release resource
     public void destroyProcesses() {
-        //Release resources for audio objects
         VoiceTrack.release();
         VoiceRecorder.release();
     }
 
-    // Setter for socket object
+    // Set the socket
     public void setSocket(BluetoothSocket WalkieBluetoothSocket) {
         this.WalkieBluetoothSocket = WalkieBluetoothSocket;
     }

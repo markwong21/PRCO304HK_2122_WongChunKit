@@ -32,6 +32,7 @@ public class DeviceListActivity extends AppCompatActivity {
     private BluetoothAdapter bluetoothAdapter;                  // Bluetooth Adapter view for switching Bluetooth
     private ListView PairedList, AvailableList;                 // instance of two listview
     private ProgressBar Scanning;
+    public String EXTRA_PAIRING_KEY;
 
     private ArrayAdapter<String> PairedListAdapter, AvailableListAdapter;
     private Context context;                                    // create context for toast
