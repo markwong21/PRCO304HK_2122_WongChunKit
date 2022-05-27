@@ -1,5 +1,9 @@
 package com.example.bluetoothgram;
 
+// Reference:
+// Qaifi Khan. (2019). AndroidTutorials/BluetoothChatApp/. [online] Available at:
+// https://github.com/qaifikhan/AndroidTutorials/tree/master/BluetoothChatApp [Accessed Date: 13 Feb 2022]
+
 import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;

@@ -1,5 +1,9 @@
 package com.example.bluetoothgram;
 
+// Reference:
+// RAdeff. T. (2017). Develop Password protected app in Android Studio. [online] Available at:
+// https://www.youtube.com/watch?v=OOclvSIelcI&ab_channel=TihomirRAdeff [Accessed Date: 17 Apr 2022]
+
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -43,7 +47,7 @@ public class LoginActivity extends AppCompatActivity {
                 // If login success
                 if (text.equals(LockCode)) {
                     // set the number of attempts to 5 times
-                    counter=5;
+                    counter++;
 
                     // save the number of attempts
                     StringCounter = Integer.toString(counter);
@@ -83,7 +87,7 @@ public class LoginActivity extends AppCompatActivity {
     public void BlockLogin(){
         button_Login.setEnabled(false);
         // Start to count 5 minutes for disable the login button
-        Timer = new CountDownTimer(10000, 1000) {
+        Timer = new CountDownTimer(300000, 1000) {
             public void onTick(long millisUntilFinished) {
             }
             public void onFinish() {

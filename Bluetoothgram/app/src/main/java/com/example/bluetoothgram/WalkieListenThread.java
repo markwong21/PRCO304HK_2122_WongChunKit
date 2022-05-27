@@ -1,5 +1,9 @@
 package com.example.bluetoothgram;
 
+// Reference:
+// Manoj Sharan Gunasegaran. (2017). gms298/Android-Walkie-Talkie. [online] Available at:
+// https://github.com/gms298/Android-Walkie-Talkie [Accessed Date: 15 Apr 2022]
+
 import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothServerSocket;
@@ -17,6 +21,7 @@ public class WalkieListenThread {
     public boolean ConnectAccept(BluetoothAdapter adapter, UUID ConnectUUID) {
         BluetoothServerSocket WalkieServerSocket = null;
         try {
+            // connect the socket by using the UUID
             WalkieServerSocket = adapter.listenUsingRfcommWithServiceRecord("BTService", ConnectUUID);
         } catch(IOException e) {
             Log.d("WalkieListenThread", "Fail to use RFCOMM to listen");
@@ -29,6 +34,7 @@ public class WalkieListenThread {
         }
         if (WalkieListenSocket != null) {
             try {
+                // close the server socket if there is no WalkieListenSocket
                 WalkieServerSocket.close();
             } catch (IOException e) {
                 Log.d("WalkieListenThread", "Fail to close socket");
@@ -41,7 +47,8 @@ public class WalkieListenThread {
 
     public boolean closeConnect() {
         try {
-            WalkieListenSocket.close();     // Close connection
+            // Close connection
+            WalkieListenSocket.close();
         } catch(IOException e) {
             Log.d("WalkieListenThread", "Failed to close socket");
             return false;
@@ -51,6 +58,7 @@ public class WalkieListenThread {
 
 
     public BluetoothSocket getSocket() {
-        return WalkieListenSocket;          // Return socket
+        // Return socket
+        return WalkieListenSocket;
     }
 }

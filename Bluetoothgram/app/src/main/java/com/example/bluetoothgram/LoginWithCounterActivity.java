@@ -1,5 +1,9 @@
 package com.example.bluetoothgram;
 
+// Reference:
+// RAdeff. T. (2017). Develop Password protected app in Android Studio. [online] Available at:
+// https://www.youtube.com/watch?v=OOclvSIelcI&ab_channel=TihomirRAdeff [Accessed Date: 17 Apr 2022]
+
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
@@ -47,6 +51,13 @@ public class LoginWithCounterActivity extends AppCompatActivity {
                 if (text.equals(LockCode)) {
                     // set the number of attempts to 5 times
                     counter=5;
+
+                    // save the number of attempts
+                    StringCounter = Integer.toString(counter);
+                    SharedPreferences COUNTER = getSharedPreferences("login_counter", 0);
+                    SharedPreferences.Editor editor = COUNTER.edit();
+                    editor.putString("login_counter",StringCounter);
+                    editor.apply();
 
                     // Go to the main page
                     Intent intent = new Intent(getApplicationContext(), MainActivity.class);

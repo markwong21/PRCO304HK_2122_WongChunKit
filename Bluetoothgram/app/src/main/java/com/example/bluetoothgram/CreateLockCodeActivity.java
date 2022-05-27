@@ -1,5 +1,9 @@
 package com.example.bluetoothgram;
 
+// Reference:
+// RAdeff. T. (2017). Develop Password protected app in Android Studio. [online] Available at:
+// https://www.youtube.com/watch?v=OOclvSIelcI&ab_channel=TihomirRAdeff [Accessed Date: 17 Apr 2022]
+
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;

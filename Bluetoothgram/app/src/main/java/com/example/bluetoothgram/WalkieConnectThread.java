@@ -1,5 +1,9 @@
 package com.example.bluetoothgram;
 
+// Reference:
+// Manoj Sharan Gunasegaran. (2017). gms298/Android-Walkie-Talkie. [online] Available at:
+// https://github.com/gms298/Android-Walkie-Talkie [Accessed Date: 15 Apr 2022]
+
 import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;

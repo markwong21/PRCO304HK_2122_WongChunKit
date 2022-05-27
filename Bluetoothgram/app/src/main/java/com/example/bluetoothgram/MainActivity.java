@@ -1,5 +1,15 @@
 package com.example.bluetoothgram;
 
+// Reference:
+// Qaifi Khan. (2019). AndroidTutorials/BluetoothChatApp/. [online] Available at:
+// https://github.com/qaifikhan/AndroidTutorials/tree/master/BluetoothChatApp [Accessed Date: 21 Mar 2022]
+//
+// Manoj Sharan Gunasegaran. (2017). gms298/Android-Walkie-Talkie. [online] Available at:
+// https://github.com/gms298/Android-Walkie-Talkie [Accessed Date: 15 Apr 2022]
+//
+// Nikolay Elenkov and Paul Stöhr. (2015). nelenkov/ecdh-kx. [online] Available at:
+// https://github.com/nelenkov/ecdh-kx [Accessed Date: 15 May 2022]
+
 import static android.service.controls.ControlsProviderService.TAG;
 import static com.example.bluetoothgram.ChatServiceActivity.STATE_NONE;
 
@@ -39,22 +49,42 @@ import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import java.math.BigInteger;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
 import java.security.KeyPair;
-import java.security.MessageDigest;
-import java.util.ArrayList;
-import java.util.Set;
+import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.SecureRandom;
+import java.security.Security;
 import java.util.UUID;
+import java.util.Set;
+import java.util.ArrayList;
 
 import javax.crypto.Cipher;
+import javax.crypto.KeyAgreement;
 import javax.crypto.spec.SecretKeySpec;
+import java.util.Random;
+import java.security.MessageDigest;
+
+
+import com.google.android.material.snackbar.Snackbar;
+
+import org.spongycastle.jce.spec.ECParameterSpec;
+import org.spongycastle.math.ec.ECCurve;
+import org.spongycastle.util.encoders.Hex;
+
 
 public class MainActivity extends AppCompatActivity {
+
     // define the message type
     public static final int MESSAGE_STATE_CHANGE = 1;
     public static final int MESSAGE_READ = 2;
     public static final int MESSAGE_WRITE = 3;
     public static final int MESSAGE_DEVICE_NAME = 4;
     public static final int MESSAGE_TOAST = 5;
+    public static final int MESSAGE_READPASSWORD = 6;
 
     private Context context;                                    // create context for toast
     private BluetoothAdapter bluetoothAdapter;                  // Bluetooth Adapter view for switching Bluetooth
@@ -74,6 +104,7 @@ public class MainActivity extends AppCompatActivity {
     private EditText EditMessage;
     private Button SendButton, ListenButton, SwitchConnectButton, ListWalkieDeviceButton, TalkButton;
     private ArrayAdapter<String> ChatArrayAdapter;             // adapter for listview
+    private ArrayAdapter<String> CyptoArrayAdapter;             // adapter for listview
     private StringBuffer OutputStringBuffer;
 
     // Requesting permission to RECORD_AUDIO
@@ -95,13 +126,21 @@ public class MainActivity extends AppCompatActivity {
     private Set<BluetoothDevice> PairedWalkieDevice;
 
     // AES Password used to encrypt and decrypted
-    String Password = "45q238trgwyegr283r2";
+    String Password = "f9049ca7b36b47e28e5e1ab1";
     String AES = "AES";
+
+    private static String TAG = MainActivity.class.getSimpleName();
+    private static String KeyPairA_Key = "KeyPair_A";
+    private static String KeyPairB_Key = "KeyPair_B";
+    private static final String CURVE_NAME = "secp160k1";
+    public Cryptography cryptography;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        cryptography = Cryptography.getInstance();
 
         ActivityCompat.requestPermissions(this, record_permission, RECORD_AUDIO_PERMISSION_REQUEST);
 
@@ -192,7 +231,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-
+        // close the walkie connection
         SwitchConnectButton.setOnClickListener(new View.OnClickListener(){
             @Override
             public void onClick(View arg0) {
@@ -216,7 +255,7 @@ public class MainActivity extends AppCompatActivity {
                 WalkieAudio.destroyProcesses();
 
                 if (disconnectListen || disconnectConnect) {
-                    // Disconnect successful - Handle UI element change
+                    // Handle UI change if disconnect success
                     TalkButton.setVisibility(TalkButton.GONE);
                     ListenButton.setEnabled(true);
                     ListWalkieDeviceButton.setEnabled(true);
@@ -224,7 +263,7 @@ public class MainActivity extends AppCompatActivity {
                         PairedWalkieListView.setVisibility(View.GONE);
                     }
                 } else {
-                    // Unsuccessful disconnect - Do nothing
+                    // Do nothing if disconnect not success
                 }
             }
         });
@@ -262,25 +301,24 @@ public class MainActivity extends AppCompatActivity {
             }
             });
 
-
+        // Tap the button when user need to talk
         TalkButton.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 int action = event.getAction();
+                // Start record voice when user tap the button
                 if (action == MotionEvent.ACTION_DOWN ) {
-
                     WalkieAudio.stopPlay();
                     WalkieAudio.startRecord();
 
+                    // Play the audio when the button is not tapped
                 } else if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL ) {
-
                     WalkieAudio.stopRecord();
                     WalkieAudio.startPlay();
                 }
                 return false;
             }
         });
-
 
         ChatSetup();
     }
@@ -300,8 +338,13 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 String message = null;
                 try {
-                    // call AES_Encrypt method to encrypt message after click "Send" button
-                    message = AES_Encrypt(EditMessage.getText().toString(), Password.toString());
+                    if(ChatArrayAdapter.getCount()<1){
+                        // Send the public key which is not need to encrypt
+                        message = EditMessage.getText().toString();
+                    } else {
+                        // call AES_Encrypt method to encrypt message after click "Send" button
+                        message = AES_Encrypt(EditMessage.getText().toString(), Password.toString());
+                    }
                 } catch (Exception e) {
                     Toast.makeText(context, "Encrypted failed",Toast.LENGTH_SHORT).show();
                 }
@@ -335,6 +378,184 @@ public class MainActivity extends AppCompatActivity {
         SecretKeySpec secretKeySpec = new SecretKeySpec(key, "AES");
         return secretKeySpec;
     }
+
+    // Call ClearKeys method
+    private void CallClearKeys(){
+        SharedPreferences prefs = PreferenceManager
+                .getDefaultSharedPreferences(this);
+        ClearKeys(prefs);
+    }
+
+    //private void CallECDH(){
+    //    SharedPreferences prefs = PreferenceManager
+    //            .getDefaultSharedPreferences(this);
+    //    ECDH(prefs);
+    //}
+
+    // Clear all key pair in share preference for store new key pair
+    private void ClearKeys(SharedPreferences prefs) {
+        SharedPreferences.Editor prefsEditor = prefs.edit();
+        prefsEditor.putString(KeyPairA_Key + "_private", null);
+        prefsEditor.putString(KeyPairA_Key + "_public", null);
+        prefsEditor.putString(KeyPairB_Key + "_private", null);
+        prefsEditor.putString(KeyPairB_Key + "_public", null);
+
+        prefsEditor.commit();
+
+        Toast.makeText(MainActivity.this, "Deleted keys.", Toast.LENGTH_LONG)
+                .show();
+    }
+
+    // Call GenerateKeys method
+    private void CallGenerateKeys(){
+        SharedPreferences prefs = PreferenceManager
+                .getDefaultSharedPreferences(this);
+        GenerateKeys(prefs);
+    }
+
+    // Generate the own keypair combined with own public key and own private key
+    private void GenerateKeys(SharedPreferences prefs) {
+        final SharedPreferences.Editor prefsEditor = prefs.edit();
+
+        new AsyncTask<Void, Void, Boolean>() {
+
+            EC_Parameter ec_param;
+            Exception error;
+
+            @Override
+            protected void onPreExecute() {
+                Toast.makeText(MainActivity.this, "Generating keypair of ECDH", Toast.LENGTH_SHORT).show();
+                setProgressBarIndeterminateVisibility(true);
+            }
+
+            @Override
+            protected Boolean doInBackground(Void... arg0) {
+                try {
+                    // Call EC_Parameter method and get the parameter
+                    ec_param = EC_Parameter.getParams(CURVE_NAME);
+                    // Generate the keypair by calling cryptography method
+                    KeyPair KeyPair_A = cryptography.GenKeyPairParams(ec_param);
+                    // Save the own keypair including public key and private key
+                    SaveKeyPair(prefsEditor, KeyPairA_Key, KeyPair_A);
+                    return prefsEditor.commit();
+                } catch (Exception e) {
+                    Log.e(TAG, "Error to generate keys: " + e.getMessage(), error);
+                    error = e;
+                    return false;
+                }
+            }
+
+            @Override
+            protected void onPostExecute(Boolean result) {
+                setProgressBarIndeterminateVisibility(false);
+                if (result) {
+                    Toast.makeText(MainActivity.this, "Generated and saved keys", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(MainActivity.this, error == null ? "Error to save keys" : error.getMessage(), Toast.LENGTH_LONG).show();
+                }
+            }
+        }.execute();
+    }
+
+
+    // We tried to use ECDH method to generate the common secret by combine the own private key and received public key
+    // But cannot read the received public key
+    //private void ECDH (final SharedPreferences prefs) {
+    //    new AsyncTask<Void, Void, String[]>() {
+
+    //        Exception error;
+
+    //        @Override
+    //        protected void onPreExecute() {
+    //            Toast.makeText(MainActivity.this,
+    //                    "Calculating shared ECDH key...", Toast.LENGTH_SHORT)
+    //                    .show();
+
+    //            setProgressBarIndeterminateVisibility(true);
+    //        }
+
+    //        @Override
+    //        protected String[] doInBackground(Void... arg0) {
+    //            try {
+    //                KeyPair KeyPair_A = Read_KeyPair(prefs, KeyPairA_Key);
+    //                if (KeyPair_A == null) {
+    //                    throw new IllegalArgumentException(
+    //                            "Key A not found. Generate keys first.");
+    //                }
+
+    //                KeyPair KeyPair_B;
+
+    //                byte[] Secret_A = cryptography.ecdh(KeyPair_A.getPrivate(),
+    //                        KeyPair_B.getPublic());
+
+    //                return new String[] { Cryptography.hex(Secret_A),
+    //                        Cryptography.hex(Secret_B) };
+    //            } catch (Exception e) {
+    //                Log.e(TAG, "Error doing ECDH: " + e.getMessage(), error);
+    //                error = e;
+
+    //                return null;
+    //            }
+    //        }
+
+    //        @Override
+    //        protected void onPostExecute(String[] result) {
+    //            setProgressBarIndeterminateVisibility(false);
+
+    //            if (result != null && error == null) {
+                    //sharedKeyAText.setText(result[0]);
+                    //sharedKeyBText.setText(result[1]);
+    //            } else {
+    //                Toast.makeText(MainActivity.this, error.getMessage(),
+    //                        Toast.LENGTH_LONG).show();
+    //            }
+    //        }
+
+    //    }.execute();
+    //}
+
+
+    private void SaveKeyPair(SharedPreferences.Editor prefsEditor, String key,
+                             KeyPair keypair) {
+        // Save public key
+        String Public_String = Cryptography.Encode_Base64(keypair.getPublic().getEncoded());
+        // Save private key
+        String Private_String = Cryptography.Encode_Base64(keypair.getPrivate().getEncoded());
+
+        prefsEditor.putString(key + "_public", Public_String);
+        prefsEditor.putString(key + "_private", Private_String);
+
+        // call ExchangePublicKey method
+        ExchangePublicKey(Public_String);
+    }
+
+
+    private void ExchangePublicKey(String Public_String){
+        if(ChatService.getState() != ChatService.STATE_CONNECTED){
+            // show error when the device is not connect to other device
+            Toast.makeText(context, "Not Connected",Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if(Public_String.length() > 0){
+            byte[] send=Public_String.getBytes();
+            // call ChatService to send the public key
+            ChatService.write(send);
+        }
+    }
+
+    private KeyPair Read_KeyPair(SharedPreferences prefs, String key)
+            throws Exception {
+        // Read the String of public key
+        String public_KeyString = prefs.getString(key + "_public", null);
+        // Read the String of private key
+        String private_KeyString = prefs.getString(key + "_private", null);
+        if (public_KeyString == null || private_KeyString == null) {
+            return null;
+        }
+        return cryptography.Read_KeyPair(public_KeyString, private_KeyString);
+    }
+
+
 
     private void sendMessage(String message){
         if(ChatService.getState() != ChatService.STATE_CONNECTED){
@@ -504,6 +725,8 @@ public class MainActivity extends AppCompatActivity {
     @SuppressLint("HandlerLeak")
     // handle all the message coming from the service
     private final Handler handler=new Handler() {
+        private KeyPair KeyPair_B;
+
         @Override
         public void handleMessage(Message msg) {
             // tell the type of message
@@ -512,6 +735,7 @@ public class MainActivity extends AppCompatActivity {
                     switch (msg.arg1){
                         // show the state in the system UI
                         case ChatServiceActivity.STATE_NONE:
+                            CallClearKeys();
                             setState("Not Connected");
                             break;
                         case ChatServiceActivity.STATE_LISTEN:
@@ -525,20 +749,31 @@ public class MainActivity extends AppCompatActivity {
                         case ChatServiceActivity.STATE_CONNECTED:
                             PairedWalkieListView.setVisibility(View.GONE);
                             TalkButton.setVisibility(TalkButton.GONE);
+                            CallClearKeys();
+                            CallGenerateKeys();
                             setState("Connected to: " + ConnectedDeviceName);
                             break;
                     }
                     break;
                 case MESSAGE_WRITE:
-                    byte[]writeBuf =(byte[])msg.obj;
-                    // convert to the string and pass the buffer here
-                    String writeMessage=new String(writeBuf);
-                    PairedWalkieListView.setVisibility(View.GONE);
-                    TalkButton.setVisibility(TalkButton.GONE);
-                    // add to the adapter
-                    ChatArrayAdapter.add("Me： " + writeMessage);
-                    ChatView.setVisibility(View.VISIBLE);
-                    break;
+                    if (ChatArrayAdapter.getCount()<=1){
+                        byte[]writeBuf =(byte[])msg.obj;
+                        String writeMessage=new String(writeBuf);
+                        PairedWalkieListView.setVisibility(View.GONE);
+                        TalkButton.setVisibility(TalkButton.GONE);
+                        // ChatView.setVisibility(View.VISIBLE);
+                        break;
+                    } else{
+                        byte[]writeBuf =(byte[])msg.obj;
+                        // convert to the string and pass the buffer here
+                        String writeMessage=new String(writeBuf);
+                        PairedWalkieListView.setVisibility(View.GONE);
+                        TalkButton.setVisibility(TalkButton.GONE);
+                        // add to the adapter
+                        ChatArrayAdapter.add("Me： " + writeMessage);
+                        ChatView.setVisibility(View.VISIBLE);
+                        break;
+                    }
                 case MESSAGE_READ:
                     // store the input buffer
                     byte[]readBuf =(byte[])msg.obj;
@@ -546,23 +781,29 @@ public class MainActivity extends AppCompatActivity {
                     String readMessage=new String(readBuf,0,msg.arg1);
                     PairedWalkieListView.setVisibility(View.GONE);
                     TalkButton.setVisibility(TalkButton.GONE);
-
-                    // decrypt message
-                    SecretKeySpec AES_key = null;
                     try {
-                        // Generate secret case by using given password
-                        AES_key = GenKey(Password);
-                        // Use cipher with AES to decrypt
-                        Cipher cipher = Cipher.getInstance(AES);
-                        cipher.init(Cipher.DECRYPT_MODE, AES_key);
-                        // Use Base64 to decode message
-                        byte[] decodedValue = Base64.decode(readMessage, Base64.DEFAULT);
-                        byte[] DecValue = cipher.doFinal(decodedValue);
-                        String decryptedValue = new String(DecValue);
-
-                        // add the string to adapter
-                        ChatArrayAdapter.add(ConnectedDeviceName+": " +decryptedValue);
-                        ChatView.setVisibility(View.VISIBLE);
+                        if (ChatArrayAdapter.getCount()<=0){
+                            ChatArrayAdapter.add(ConnectedDeviceName+": " +readMessage);
+                            if (ChatArrayAdapter.getCount()==0){
+                                KeyPairB_Key = readMessage;
+                                // CallECDH();
+                            }
+                        } else {
+                            // decrypt message
+                            SecretKeySpec AES_key = null;
+                            // Generate secret case by using given password
+                            AES_key = GenKey(Password);
+                            // Use cipher with AES to decrypt
+                            Cipher cipher = Cipher.getInstance(AES);
+                            cipher.init(Cipher.DECRYPT_MODE, AES_key);
+                            // Use Base64 to decode message
+                            byte[] decodedValue = Base64.decode(readMessage, Base64.DEFAULT);
+                            byte[] DecValue = cipher.doFinal(decodedValue);
+                            String decryptedValue = new String(DecValue);
+                            // add the string to adapter
+                            ChatArrayAdapter.add(ConnectedDeviceName+": " +decryptedValue);
+                            ChatView.setVisibility(View.VISIBLE);
+                        }
                     } catch (Exception e) {
                         Toast.makeText(context, "Decrypted failed",Toast.LENGTH_SHORT).show();
                     }
@@ -577,6 +818,8 @@ public class MainActivity extends AppCompatActivity {
                     if(obtainMessage()!=null && obtainMessage().getData().getString(TOAST)!=null){
                         Toast.makeText(context, obtainMessage().getData().getString(TOAST), Toast.LENGTH_SHORT).show();
                     }
+                    break;
+                case MESSAGE_READPASSWORD:
                     break;
             }
         }
